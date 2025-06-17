@@ -1,0 +1,120 @@
+import streamlit as st
+from dotenv import load_dotenv
+from src import MyChatBot, State, retrieve, generate, load_prompt
+from src.langgraph_tracking import build_graph
+from src import test_document_pipeline
+
+def initialize_rag_pipeline():
+    try:
+        # Load environment variables
+        load_dotenv()
+        
+        # Initialize LLM
+        llm = MyChatBot()
+        
+        # Initialize vector store
+        vector_store = test_document_pipeline()
+        
+        return llm, vector_store
+    except Exception as e:
+        st.error(f"Error during initialization: {str(e)}")
+        return None, None
+
+def process_question(question: str, graph):
+    try:
+        # Create a placeholder for streaming response
+        response_placeholder = st.empty()
+        full_response = ""
+        
+        # Process the question through the RAG pipeline with streaming
+        for message, metadata in graph.stream(
+            {"question": question}, 
+            stream_mode="messages"
+        ):
+            if hasattr(message, 'content'):
+                full_response += message.content
+                response_placeholder.markdown(full_response)
+        
+        return full_response
+    except Exception as e:
+        st.error(f"Error processing question: {str(e)}")
+        return None
+
+def main():
+    st.set_page_config(
+        page_title="RAG Chatbot",
+        page_icon="🤖",
+        layout="wide"
+    )
+    
+    # Custom CSS
+    st.markdown("""
+        <style>
+        .stTextInput>div>div>input {
+            font-size: 18px;
+        }
+        .stMarkdown {
+            font-size: 16px;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+    
+    # Title
+    st.title("🤖 RAG Chatbot")
+    st.markdown("Ask questions about your documents!")
+    
+    # Initialize RAG pipeline
+    with st.spinner("Initializing RAG pipeline..."):
+        llm, vector_store = initialize_rag_pipeline()
+        
+    if llm is None or vector_store is None:
+        st.error("Failed to initialize RAG pipeline")
+        return
+        
+    # Build the RAG graph
+    with st.spinner("Building RAG graph..."):
+        try:
+            def retrieve_node(state):
+                return retrieve(state, vector_store=vector_store)
+                
+            def generate_node(state):
+                return generate(state, llm=llm, load_prompt=load_prompt)
+                
+            graph = build_graph(
+                State,
+                retrieve_node,
+                generate_node
+            )
+        except Exception as e:
+            st.error(f"Error building RAG graph: {str(e)}")
+            return
+    
+    # Chat interface
+    st.markdown("---")
+    
+    # Initialize chat history
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+    
+    # Display chat history
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+    
+    # Chat input
+    if prompt := st.chat_input("Ask a question"):
+        # Add user message to chat history
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        
+        # Display user message
+        with st.chat_message("user"):
+            st.markdown(prompt)
+        
+        # Display assistant response
+        with st.chat_message("assistant"):
+            response = process_question(prompt, graph)
+            if response:
+                st.session_state.messages.append({"role": "assistant", "content": response})
+
+if __name__ == "__main__":
+    main() 
