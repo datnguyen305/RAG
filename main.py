@@ -9,28 +9,75 @@ from src.prompt_template.template import load_prompt
 from src.langgraph_tracking import build_graph
 import re
 
-def initialize_rag_pipeline():
+def initialize_vector_store():
+    """
+    Initialize and return the vector store with documents.
+    Returns:
+        vector_store: The initialized vector store instance
+    """
     try:
         # Load environment variables
         load_dotenv()
         print("✅ Environment variables loaded successfully")
         
-        # Initialize LLM
-        print("🔄 Initializing LLM...")
-        llm = MyChatBot()
-        print("✅ LLM initialized successfully")
-
         # Initialize vector store
         print("🔄 Initializing vector store...")
         vector_store = test_document_pipeline()
+        if vector_store is None:
+            raise Exception("Failed to initialize vector store")
         print("✅ Vector store initialized successfully")
+        
+        return vector_store
+    except Exception as e:
+        print(f"❌ Error during vector store initialization: {str(e)}")
+        return None
+
+def initialize_llm():
+    """
+    Initialize and return the LLM model.
+    Returns:
+        llm: The initialized LLM instance
+    """
+    try:
+        print("🔄 Initializing LLM...")
+        llm = MyChatBot()
+        print("✅ LLM initialized successfully")
+        return llm
+    except Exception as e:
+        print(f"❌ Error during LLM initialization: {str(e)}")
+        return None
+
+def initialize_rag_pipeline():
+    """
+    Initialize the complete RAG pipeline including LLM and vector store.
+    Returns:
+        tuple: (llm, vector_store) if successful, (None, None) if failed
+    """
+    try:
+        # Initialize LLM
+        llm = initialize_llm()
+        if llm is None:
+            return None, None
+
+        # Initialize vector store
+        vector_store = initialize_vector_store()
+        if vector_store is None:
+            return None, None
         
         return llm, vector_store
     except Exception as e:
-        print(f"❌ Error during initialization: {str(e)}")
+        print(f"❌ Error during RAG pipeline initialization: {str(e)}")
         return None, None
 
 def process_question(question: str, graph):
+    """
+    Process a question through the RAG pipeline with streaming.
+    Args:
+        question (str): The question to process
+        graph: The RAG graph instance
+    Returns:
+        bool: True if successful, None if failed
+    """
     try:
         # Process the question through the RAG pipeline with streaming
         print("\n📝 Answer:")

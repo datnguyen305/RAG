@@ -3,6 +3,8 @@ from dotenv import load_dotenv
 from src import MyChatBot, State, retrieve, generate, load_prompt
 from src.langgraph_tracking import build_graph
 from src import test_document_pipeline
+from dotenv import load_dotenv
+import os
 
 def initialize_rag_pipeline():
     try:
@@ -10,10 +12,19 @@ def initialize_rag_pipeline():
         load_dotenv()
         
         # Initialize LLM
+        from src.model import EmbeddingModel
+        embedding = EmbeddingModel()
         llm = MyChatBot()
-        
+        embedding = EmbeddingModel()
+
+        connection_string = os.getenv("CONNECTION_STRING")
+        collection_name = "medallion_architecture"
+
         # Initialize vector store
-        vector_store = test_document_pipeline()
+        vector_store = embedding.connect_to_vector_store_embedding(
+            connection_string, 
+            collection_name=collection_name
+        )
         
         return llm, vector_store
     except Exception as e:
@@ -32,7 +43,16 @@ def process_question(question: str, graph):
             stream_mode="messages"
         ):
             if hasattr(message, 'content'):
-                full_response += message.content
+                # Format the response with different colors for different tags
+                formatted_response = message.content
+                formatted_response = formatted_response.replace("[CONTEXT]", "🔍 **Context:** ")
+                formatted_response = formatted_response.replace("[/CONTEXT]", "")
+                formatted_response = formatted_response.replace("[LLM]", "🤖 **AI Generated:** ")
+                formatted_response = formatted_response.replace("[/LLM]", "")
+                formatted_response = formatted_response.replace("[MIXED]", "🔄 **Combined:** ")
+                formatted_response = formatted_response.replace("[/MIXED]", "")
+                
+                full_response += formatted_response
                 response_placeholder.markdown(full_response)
         
         return full_response
@@ -51,10 +71,10 @@ def main():
     st.markdown("""
         <style>
         .stTextInput>div>div>input {
-            font-size: 18px;
+            font-size: 25px;
         }
         .stMarkdown {
-            font-size: 16px;
+            font-size: 25px;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -117,4 +137,5 @@ def main():
                 st.session_state.messages.append({"role": "assistant", "content": response})
 
 if __name__ == "__main__":
-    main() 
+    test_document_pipeline()
+    main()

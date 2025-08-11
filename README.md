@@ -9,11 +9,13 @@ A Retrieval-Augmented Generation (RAG) chatbot built with LangChain and Streamli
 - 💬 Interactive chat interface with Streamlit
 - ⚡ Real-time streaming responses
 - 📝 Chat history preservation
+- 🔄 OpenAI integration
 
 ## Prerequisites
 
 - Python 3.8+
 - OpenAI API key
+- PostgreSQL (for vector store)
 - Required Python packages (see requirements.txt)
 
 ## Installation
@@ -35,10 +37,17 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-4. Create a `.env` file in the root directory with your OpenAI API key:
-```
-OPENAI_API_KEY=your_api_key_here
-```
+4. Set up environment variables:
+   - Create a `.env` file in the root directory
+   - Add your OpenAI API key:
+   ```
+   OPENAI_API_KEY=your_api_key_here
+   ```
+
+5. Set up PostgreSQL:
+   - Install PostgreSQL if you haven't already
+   - Create a database named `vector_db`
+   - Update database credentials in your code
 
 ## Usage
 
@@ -54,32 +63,28 @@ streamlit run app.py
 ## Project Structure
 
 ```
-rag-chatbot/
+.
 ├── app.py              # Streamlit application
-├── main.py            # CLI version of the chatbot
-├── requirements.txt   # Project dependencies
-├── .env              # Environment variables (not in repo)
+├── main.py            # CLI application
+├── requirements.txt   # Python dependencies
 ├── src/              # Source code
-│   ├── model/        # LLM models
-│   ├── task/         # RAG tasks
+│   ├── document_store/
+│   ├── task/
 │   └── ...
-└── data/             # Document data
+├── config/           # Configuration files
+└── data/            # Document data
 ```
+
+## Development
+
+- The application uses PostgreSQL as a vector store
+- Documents are processed and stored in the vector database
+- Questions are answered using RAG pipeline with OpenAI
 
 ## Contributing
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Acknowledgments
-
-- LangChain for the RAG framework
-- Streamlit for the web interface
-- OpenAI for the language model 
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request 
